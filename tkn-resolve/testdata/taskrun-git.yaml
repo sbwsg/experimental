@@ -1,0 +1,10 @@
+kind: TaskRun
+apiVersion: tekton.dev/v1beta1
+metadata:
+  name: foo
+spec:
+  taskRef:
+    name: git://https://github.com/tektoncd/catalog/;master;task/git-clone/0.2/git-clone.yaml
+  params:
+  - name: url
+    value: github.com/tektoncd/pipeline.git

@@ -18,13 +18,12 @@ func ResolvePipelineRun(path string) (*v1beta1.PipelineRun, error) {
 	// Resolve Pipeline (either by file or by API)
 	spec := pr.Spec.PipelineSpec
 	if pr.Spec.PipelineRef != nil {
-		if name := pr.Spec.PipelineRef.Name; strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/") {
-			p := new(v1beta1.Pipeline)
-			if err := read(name, p); err != nil {
-				return nil, err
-			}
-			spec = &p.Spec
+		name := pr.Spec.PipelineRef.Name
+		p := new(v1beta1.Pipeline)
+		if err := resolve(name, p); err != nil {
+			return nil, err
 		}
+		spec = &p.Spec
 	}
 
 	// Resolve PipelineTasks
@@ -35,13 +34,12 @@ func ResolvePipelineRun(path string) (*v1beta1.PipelineRun, error) {
 		}
 
 		var ts v1beta1.TaskSpec
-		if name := pt.TaskRef.Name; strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/") {
-			t := new(v1beta1.Task)
-			if err := read(name, t); err != nil {
-				return nil, err
-			}
-			ts = t.Spec
+		name := pt.TaskRef.Name
+		t := new(v1beta1.Task)
+		if err := resolve(name, t); err != nil {
+			return nil, err
 		}
+		ts = t.Spec
 
 		pt.TaskSpec = &v1beta1.EmbeddedTask{TaskSpec: ts}
 		pt.TaskRef = nil
@@ -51,6 +49,22 @@ func ResolvePipelineRun(path string) (*v1beta1.PipelineRun, error) {
 	pr.Spec.PipelineSpec = spec
 	pr.Spec.PipelineRef = nil
 	return pr, nil
+}
+
+func resolve(name string, out interface{}) error {
+	switch {
+	case isFile(name):
+		return read(name, out)
+	case isGit(name):
+		return readGit(name, out)
+	default:
+		// Resolve from k8s API?
+		return nil
+	}
+}
+
+func isFile(name string) bool {
+	return strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/")
 }
 
 func read(path string, out interface{}) error {
@@ -81,15 +95,12 @@ func ResolveTaskRun(path string) (*v1beta1.TaskRun, error) {
 	}
 
 	var ts v1beta1.TaskSpec
-	if name := tr.Spec.TaskRef.Name; strings.HasPrefix(name, "./") || strings.HasPrefix(name, "/") {
-		t := new(v1beta1.Task)
-		if err := read(name, t); err != nil {
-			return nil, err
-		}
-		ts = t.Spec
-	} else {
-		// API Resolve
+	name := tr.Spec.TaskRef.Name
+	t := new(v1beta1.Task)
+	if err := resolve(name, t); err != nil {
+		return nil, err
 	}
+	ts = t.Spec
 
 	tr.Status.TaskSpec = &ts
 	tr.Spec.TaskRef = nil
