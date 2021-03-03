@@ -33,3 +33,6 @@ coverage/
 
 # Kodata
 kodata
+
+# read-only SSH key for internal catalog testing
+catalogref/private-catalog-key.secret

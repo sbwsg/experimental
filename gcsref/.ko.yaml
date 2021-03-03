@@ -1,0 +1,1 @@
+defaultBaseImage: google/cloud-sdk:332.0.0-alpine

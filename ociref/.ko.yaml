@@ -1,0 +1,1 @@
+defaultBaseImage: localhost:5000/tkn-bundle:latest
